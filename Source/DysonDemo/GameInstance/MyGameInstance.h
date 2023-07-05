@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Engine/DataTable.h"
+
+#include "LevelSequence.h"
+
 #include "MyGameInstance.generated.h"
 
 USTRUCT(BlueprintType)
@@ -31,4 +34,9 @@ class DYSONDEMO_API UMyGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 	
+private:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
+	bool bIsAssembleMode = false;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
+	TArray<ULevelSequence*> SequenceArray;
 };
