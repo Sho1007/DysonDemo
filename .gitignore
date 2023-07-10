@@ -1,11 +1,11 @@
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudio,unrealengine
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudio,unrealengine
 
-Config/DefaultEngine.ini
-
 ### UnrealEngine ###
 # Visual Studio 2015 user specific files
 .vs/
+
+Config/*
 
 # Compiled Object files
 *.slo
