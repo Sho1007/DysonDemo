@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+
+#include "HTTP.h"
+
 #include "DemoGameMode.generated.h"
 
 /**
@@ -14,6 +17,11 @@ UCLASS()
 class DYSONDEMO_API ADemoGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
+	
+protected:
+	virtual void BeginPlay() override;
+private:
+	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully);
 	
 private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
