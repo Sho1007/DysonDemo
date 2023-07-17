@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include <LevelSequence.h>
-
 #include "../GameInstance/MyGameInstance.h"
+
+#include <LevelSequence.h>
 
 ULevelSequence* UMyGameInstance::GetLevelSequence(int32 SequenceIndex) const
 {

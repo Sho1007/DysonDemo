@@ -7,6 +7,8 @@
 #include <LevelSequenceActor.h>
 #include <LevelSequencePlayer.h>
 #include <LevelSequence.h>
+#include <Kismet/GameplayStatics.h>
+#include <Components/AudioComponent.h>
 
 #include "../PartsActor.h"
 #include "../GameInstance/MyGameInstance.h"
@@ -31,12 +33,150 @@ void ADemoGameMode::InitProcess(int32 NewProcessIndex)
 {
 	CurrentProcessIndex = bIsAssembleMode ? ProcessDataArray.Num() - NewProcessIndex - 1 : NewProcessIndex;
 
+	SetMaterialToTranslucent();
+
 	ResetPlayState();
 	SetSequence();
 
-	SetMaterialToTranslucent();
+	InitStateWidget();
+}
 
-	// Todo TotalWidget->Set PartsName;
+
+bool ADemoGameMode::GetPlaySound() const
+{
+	return bPlaySound;
+}
+
+TArray<FProcessData> ADemoGameMode::GetProcessDataArray() const
+{
+	return ProcessDataArray;
+}
+
+FProcessData ADemoGameMode::GetCurrentProcessData() const
+{
+	return ProcessDataArray[CurrentProcessIndex];
+}
+
+void ADemoGameMode::ToggleProcessMode()
+{
+	bIsAssembleMode = !bIsAssembleMode;
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Purple, FString::Printf(TEXT("AssembleMode : %d"), bIsAssembleMode));
+	OnProcessModeChanged.Broadcast(bIsAssembleMode);
+}
+
+void ADemoGameMode::PressDetail()
+{
+	if (GetIsDetailShown())
+	{
+		HideDetailWidget();
+		EndAction();
+	}
+	else
+	{
+		bShowDetail = !bShowDetail;
+		OnDetailChanged.Broadcast(bShowDetail);
+	}
+}
+
+void ADemoGameMode::PressPlay()
+{
+	SetMaterialToDefault();
+	if (bIsPlaying)
+	{
+		SetIsPause();
+		if (bIsPaused)
+		{
+			Pause();
+		}
+		else
+		{
+			PlaySequence();
+		}
+	}
+	else
+	{
+		PlaySequence();
+	}
+}
+
+void ADemoGameMode::PressRepeat()
+{
+	bIsRepeat = !bIsRepeat;
+	OnRepeatChanged.Broadcast(bIsRepeat);
+}
+
+void ADemoGameMode::PressSpeed()
+{
+	if (PlaySpeed == 1.0f)
+	{
+		PlaySpeed = 0.5f;
+	}
+	else if (PlaySpeed == 0.5f)
+	{
+		PlaySpeed = 0.25f;
+	}
+	else if (PlaySpeed == 0.25f)
+	{
+		PlaySpeed = 1.0f;
+	}
+	if (LevelSequenceActor->IsValidLowLevelFast())
+	{
+		LevelSequenceActor->SequencePlayer->SetPlayRate(PlaySpeed);
+	}
+
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Purple, FString::Printf(TEXT("ADemoGameMode::PressSpeed : Speed %f"), PlaySpeed));
+
+	OnSpeedChanged.Broadcast(PlaySpeed);
+}
+
+void ADemoGameMode::PressSound()
+{
+	bPlaySound = !bPlaySound;
+	OnSoundChanged.Broadcast(bPlaySound);
+	if (BGM)
+	{
+		BGM->SetPaused(!bPlaySound);
+	}
+}
+
+void ADemoGameMode::CheckPause()
+{
+	if (!bIsPaused)
+	{
+		PlaySequence();
+	}
+}
+
+void ADemoGameMode::PlaySequence()
+{
+	SetIsPlaying();
+
+	if (bIsReadyToPlay)
+	{
+		bIsAssembleMode ? LevelSequenceActor->SequencePlayer->PlayReverse() : LevelSequenceActor->SequencePlayer->Play();
+	}
+	else
+	{
+		bIsReadyToPlay = true;
+		ReadyToPlay();
+	}
+}
+
+void ADemoGameMode::SetIsPlaying()
+{
+	bIsPlaying = !bIsPlaying;
+	OnPlayChanged.Broadcast(bIsPlaying && !bIsPaused);
+}
+
+void ADemoGameMode::SetIsPause()
+{
+	bIsPaused = !bIsPaused;
+	OnPlayChanged.Broadcast(bIsPlaying && !bIsPaused);
+}
+
+void ADemoGameMode::Pause()
+{
+	LevelSequenceActor->SequencePlayer->Pause();
 }
 
 void ADemoGameMode::BeginPlay()
@@ -59,6 +199,39 @@ void ADemoGameMode::BeginPlay()
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::BeginPlay : APIURL is Empty"));
+	}
+
+	if (BGMSound)
+	{
+		BGM = UGameplayStatics::SpawnSound2D(GetWorld(), BGMSound);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::BeginPlay : BGMSound is not Valid"));
+	}
+}
+
+void ADemoGameMode::EndAction()
+{
+	if (bIsRepeat)
+	{
+		FMovieSceneSequencePlaybackParams Params;
+		if (bIsAssembleMode)
+		{
+			Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetEndTime().Time.FrameNumber;
+			LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
+			LevelSequenceActor->SequencePlayer->PlayReverse();
+		}
+		else
+		{
+			Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
+			LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
+			LevelSequenceActor->SequencePlayer->Play();
+		}
+	}
+	else
+	{
+		ResetPlayState();
 	}
 }
 
@@ -126,6 +299,11 @@ void ADemoGameMode::InitPartsActorArray()
 
 void ADemoGameMode::ResetPlayState()
 {
+	bIsPlaying = false;
+	bIsReadyToPlay = false;
+	bIsPaused = false;
+
+	OnPlayChanged.Broadcast(false);
 }
 
 void ADemoGameMode::SetSequence()
@@ -139,7 +317,7 @@ void ADemoGameMode::SetSequence()
 	{
 		ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), LevelSequence, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
 		LevelSequenceActor->SequencePlayer->SetPlayRate(PlaySpeed);
-		LevelSequenceActor->SequencePlayer->OnFinished.AddDynamic(this, ADemoGameMode::OnSequenceFinished);
+		LevelSequenceActor->SequencePlayer->OnFinished.AddDynamic(this, &ADemoGameMode::OnSequenceFinished);
 		FMovieSceneSequencePlaybackParams Params;
 		Params.Frame.FrameNumber = bIsAssembleMode ? LevelSequenceActor->SequencePlayer->GetEndTime().Time.FrameNumber : LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
 		LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
@@ -154,24 +332,17 @@ void ADemoGameMode::OnSequenceFinished()
 {
 	if (bShowDetail)
 	{
-		// Todo : Call ShowDetail At TotalWidget
+		ShowDetailWidget();
 	}
 	else
 	{
-		if (bIsRepeat)
-		{
-
-		}
-		else
-		{
-			ResetPlayState();
-		}
+		EndAction();
 	}
 }
 
 void ADemoGameMode::SetMaterialToTranslucent()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString::Printf(TEXT("Translucent : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
+	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString::Printf(TEXT("Translucent : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
 	for (APartsActor* PartsActor : ProcessDataArray[CurrentProcessIndex].PartsActorArray)
 	{
 		PartsActor->SetMaterialToDefault();
@@ -199,7 +370,7 @@ void ADemoGameMode::SetMaterialToTranslucent()
 
 void ADemoGameMode::SetMaterialToDefault()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Default : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Default : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
 
 	for (int i = 0; i < ProcessDataArray.Num(); ++i)
 	{

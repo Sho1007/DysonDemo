@@ -15,8 +15,6 @@ class DYSONDEMO_API UMyGameInstance : public UGameInstance
 public:
 	ULevelSequence* GetLevelSequence(int32 SequenceIndex) const;
 private:
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
-	bool bIsAssembleMode = false;
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
 	TArray<ULevelSequence*> SequenceArray;
 };

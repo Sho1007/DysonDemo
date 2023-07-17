@@ -38,19 +38,19 @@ struct FProcessData
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FText ProcessText;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<APartsActor*> PartsActorArray;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 SequenceIndex;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	int32 CameraIndex;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FText> AssembleInstruction;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FText> DisassembleInstruction;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<UTexture2D*> DetailImageArray;
 };
 
@@ -62,9 +62,57 @@ class DYSONDEMO_API ADemoGameMode : public AGameModeBase
 public:
 	UFUNCTION(BlueprintCallable)
 	void InitProcess(int32 NewProcessIndex);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void ShowInstruction(int32 Index);
+
+	UFUNCTION(BlueprintCallable)
+	bool GetPlaySound() const;
+
+	UFUNCTION(BlueprintCallable)
+	TArray<FProcessData> GetProcessDataArray() const;
+	UFUNCTION(BlueprintCallable)
+	FProcessData GetCurrentProcessData() const;
+
+	UFUNCTION(BlueprintCallable)
+	void CheckPause();
+
+	// UI
+	UFUNCTION(BlueprintCallable)
+	void ToggleProcessMode();
+	UFUNCTION(BlueprintCallable)
+	void PressDetail();
+	UFUNCTION(BlueprintCallable)
+	void PressPlay();
+	UFUNCTION(BlueprintCallable)
+	void PressRepeat();
+	UFUNCTION(BlueprintCallable)
+	void PressSpeed();
+	UFUNCTION(BlueprintCallable)
+	void PressSound();
+
+	// Blueprint
+	UFUNCTION(BlueprintImplementableEvent)
+	bool GetIsDetailShown() const;
+	UFUNCTION(BlueprintImplementableEvent)
+	void ShowDetailWidget() const;
+	UFUNCTION(BlueprintImplementableEvent)
+	void HideDetailWidget() const;
+	UFUNCTION(BlueprintImplementableEvent)
+	void InitStateWidget() const;
+	UFUNCTION(BlueprintImplementableEvent)
+	void ReadyToPlay() const;
+	
 protected:
 	virtual void BeginPlay() override;
 private:
+	void PlaySequence();
+	void SetIsPlaying();
+	void SetIsPause();
+	void Pause();
+	// Called when Sequence Play is over 
+	void EndAction();
+
 	void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bConnectedSuccessfully);
 	bool RequestHTTP(const FString URL);
 
@@ -77,7 +125,7 @@ private:
 
 	UFUNCTION(CallInEditor)
 	void SetMaterialToTranslucent();
-	UFUNCTION(CallInEditor)
+	UFUNCTION(BlueprintCallable)
 	void SetMaterialToDefault();
 
 public:
@@ -94,11 +142,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Delegate")
 	FDele_Float OnSpeedChanged;
 private:
-	float PlaySpeed;
+	UPROPERTY(BlueprintReadWrite , EditAnywhere, Meta = (AllowPrivateAccess = true))
+	float PlaySpeed = 1.0f;
 	bool bIsPlaying;
 	bool bIsReadyToPlay;
 	bool bIsRepeat;
-	bool bPlaySound;
+	bool bPlaySound = true;
 	bool bShowDetail;
 	bool bIsPaused;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Meta = (AllowPrivateAccess = true))
@@ -111,7 +160,7 @@ private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	int32 CurrentProcessIndex = 0;
 
-	UPROPERTY(EditAnywhere, Meta = (AllowPrivateAccess = true))
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	TArray<FProcessData> ProcessDataArray;
 
 	UPROPERTY(EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
@@ -127,4 +176,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
 	TSubclassOf<APartsActor> PartsActorClass;
+
+	// Sound
+	UPROPERTY(EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
+	USoundBase* BGMSound;
+	UAudioComponent* BGM;
 };
