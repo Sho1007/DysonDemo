@@ -63,7 +63,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void InitProcess(int32 NewProcessIndex);
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void ShowInstruction(int32 Index);
 
 	UFUNCTION(BlueprintCallable)
