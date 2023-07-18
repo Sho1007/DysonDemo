@@ -139,11 +139,12 @@ public:
 	FDele_Bool OnSoundChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Delegate")
 	FDele_Bool OnDetailChanged;
+
 	UPROPERTY(BlueprintAssignable, Category = "Delegate")
-	FDele_Float OnSpeedChanged;
+	FDele_Float OnPlayRateChanged;
 private:
 	UPROPERTY(BlueprintReadWrite , EditAnywhere, Meta = (AllowPrivateAccess = true))
-	float PlaySpeed = 1.0f;
+	float PlayRate = 1.0f;
 	bool bIsPlaying;
 	bool bIsReadyToPlay;
 	bool bIsRepeat;

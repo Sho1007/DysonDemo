@@ -60,7 +60,6 @@ FProcessData ADemoGameMode::GetCurrentProcessData() const
 void ADemoGameMode::ToggleProcessMode()
 {
 	bIsAssembleMode = !bIsAssembleMode;
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Purple, FString::Printf(TEXT("AssembleMode : %d"), bIsAssembleMode));
 	OnProcessModeChanged.Broadcast(bIsAssembleMode);
 }
 
@@ -107,26 +106,24 @@ void ADemoGameMode::PressRepeat()
 
 void ADemoGameMode::PressSpeed()
 {
-	if (PlaySpeed == 1.0f)
+	if (PlayRate == 1.0f)
 	{
-		PlaySpeed = 0.5f;
+		PlayRate = 0.5f;
 	}
-	else if (PlaySpeed == 0.5f)
+	else if (PlayRate == 0.5f)
 	{
-		PlaySpeed = 0.25f;
+		PlayRate = 0.25f;
 	}
-	else if (PlaySpeed == 0.25f)
+	else if (PlayRate == 0.25f)
 	{
-		PlaySpeed = 1.0f;
+		PlayRate = 1.0f;
 	}
 	if (LevelSequenceActor->IsValidLowLevelFast())
 	{
-		LevelSequenceActor->SequencePlayer->SetPlayRate(PlaySpeed);
+		LevelSequenceActor->SequencePlayer->SetPlayRate(PlayRate);
 	}
 
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Purple, FString::Printf(TEXT("ADemoGameMode::PressSpeed : Speed %f"), PlaySpeed));
-
-	OnSpeedChanged.Broadcast(PlaySpeed);
+	OnPlayRateChanged.Broadcast(PlayRate);
 }
 
 void ADemoGameMode::PressSound()
@@ -316,7 +313,7 @@ void ADemoGameMode::SetSequence()
 	if (ULevelSequence* LevelSequence = GetGameInstance<UMyGameInstance>()->GetLevelSequence(ProcessDataArray[CurrentProcessIndex].SequenceIndex))
 	{
 		ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), LevelSequence, FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
-		LevelSequenceActor->SequencePlayer->SetPlayRate(PlaySpeed);
+		LevelSequenceActor->SequencePlayer->SetPlayRate(PlayRate);
 		LevelSequenceActor->SequencePlayer->OnFinished.AddDynamic(this, &ADemoGameMode::OnSequenceFinished);
 		FMovieSceneSequencePlaybackParams Params;
 		Params.Frame.FrameNumber = bIsAssembleMode ? LevelSequenceActor->SequencePlayer->GetEndTime().Time.FrameNumber : LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
