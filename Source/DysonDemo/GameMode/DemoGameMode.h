@@ -121,6 +121,7 @@ private:
 	void ResetPlayState();
 	void SetSequence();
 
+	UFUNCTION()
 	void OnSequenceFinished();
 
 	UFUNCTION(CallInEditor)

@@ -146,7 +146,10 @@ void ADemoGameMode::CheckPause()
 
 void ADemoGameMode::PlaySequence()
 {
-	SetIsPlaying();
+	if (bIsPlaying == false)
+	{
+		SetIsPlaying();
+	}
 
 	if (bIsReadyToPlay)
 	{
@@ -327,6 +330,7 @@ void ADemoGameMode::SetSequence()
 
 void ADemoGameMode::OnSequenceFinished()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::OnSequenceFinished : Called"));
 	if (bShowDetail)
 	{
 		ShowDetailWidget();
