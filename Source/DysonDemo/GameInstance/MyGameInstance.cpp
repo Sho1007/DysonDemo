@@ -22,12 +22,14 @@ void UMyGameInstance::InitLevelSequence(ADemoGameMode* NewGameMode)
 
 	SequenceActorArray.Init(nullptr, SequenceArray.Num());
 
+	FMovieSceneSequencePlaybackSettings Settings;
+	Settings.bPauseAtEnd = true;
 	for (int i = 0; i < SequenceArray.Num(); ++i)
 	{
 		if (SequenceArray[i] && SequenceArray[i]->IsValidLowLevelFast())
 		{
 			ALevelSequenceActor* LevelSequenceActor;
-			ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), SequenceArray[i], FMovieSceneSequencePlaybackSettings(), LevelSequenceActor);
+			ULevelSequencePlayer::CreateLevelSequencePlayer(GetWorld(), SequenceArray[i], Settings, LevelSequenceActor);
 			LevelSequenceActor->SequencePlayer->OnFinished.AddDynamic(this, &UMyGameInstance::OnSequenceFinished);
 			SequenceActorArray[i] = LevelSequenceActor;
 		}
@@ -48,10 +50,10 @@ void UMyGameInstance::ResetSequence(int32 Index)
 		return;
 	}
 	SequenceActorArray[Index]->SequencePlayer->Pause();
-	SequenceActorArray[Index]->SequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams());
+	//SequenceActorArray[Index]->SequencePlayer->SetPlaybackPosition(FMovieSceneSequencePlaybackParams());
 }
 
-void UMyGameInstance::SetSequence(int32 Index, bool bIsAssembleMode, float PlayRate)
+void UMyGameInstance::SetSequence(int32 Index, float PlayRate)
 {
 	UE_LOG(LogTemp, Warning, TEXT("UMyGameInstance::SetSequence : Called"));
 
@@ -60,10 +62,24 @@ void UMyGameInstance::SetSequence(int32 Index, bool bIsAssembleMode, float PlayR
 		UE_LOG(LogTemp, Error, TEXT("UMyGameInstance::SetSequence : Invalid Index"));
 		return;
 	}
-	FMovieSceneSequencePlaybackSettings Settings;
-	Settings.PlayRate = PlayRate;
-	Settings.bPauseAtEnd = true;
-	SequenceActorArray[Index]->SequencePlayer->SetPlaybackSettings(Settings);
+
+	if (SequenceActorArray[Index] == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UMyGameInstance::SetSequence : Sequence Is Null"));
+		return;
+	}
+	
+	SequenceActorArray[Index]->SequencePlayer->SetPlayRate(PlayRate);
+	
+	for (int i = 0; i < SequenceActorArray.Num(); ++i)
+	{
+		if (SequenceActorArray[i] == nullptr) continue;
+		SequenceActorArray[i]->SequencePlayer->Stop();
+	}
+}
+
+void UMyGameInstance::SetPosition(int32 Index, bool bIsAssembleMode)
+{
 	FMovieSceneSequencePlaybackParams Params;
 	bIsAssembleMode ? Params.Frame.FrameNumber = SequenceActorArray[Index]->SequencePlayer->GetEndTime().Time.FrameNumber : Params.Frame.FrameNumber = SequenceActorArray[Index]->SequencePlayer->GetStartTime().Time.FrameNumber;
 	SequenceActorArray[Index]->SequencePlayer->SetPlaybackPosition(Params);

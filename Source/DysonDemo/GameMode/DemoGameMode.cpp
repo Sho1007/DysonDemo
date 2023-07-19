@@ -42,6 +42,8 @@ void ADemoGameMode::InitProcess(int32 NewProcessIndex)
 
 	InitStateWidget();
 
+	SynchronizeWidget();
+
 	SetMaterialToTranslucent();
 }
 
@@ -88,18 +90,20 @@ void ADemoGameMode::CPP_PressPlay()
 	SetMaterialToDefault();
 	if (bIsPlaying)
 	{
-		SetIsPause();
 		if (bIsPaused)
 		{
-			Pause();
+			SetIsPause(false);
+			PlaySequence();
 		}
 		else
 		{
-			PlaySequence();
+			SetIsPause(true);
+			PauseSequence();
 		}
 	}
 	else
 	{
+		SetIsPlaying();
 		PlaySequence();
 	}
 }
@@ -150,10 +154,6 @@ void ADemoGameMode::CheckPause()
 void ADemoGameMode::PlaySequence()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::PlaySequence : Called"));
-	if (bIsPlaying == false)
-	{
-		SetIsPlaying();
-	}
 
 	if (bIsReadyToPlay)
 	{
@@ -173,13 +173,13 @@ void ADemoGameMode::SetIsPlaying()
 	OnPlayChanged.Broadcast(bIsPlaying && !bIsPaused);
 }
 
-void ADemoGameMode::SetIsPause()
+void ADemoGameMode::SetIsPause(bool bNewIsPause)
 {
-	bIsPaused = !bIsPaused;
+	bIsPaused = bNewIsPause;
 	OnPlayChanged.Broadcast(bIsPlaying && !bIsPaused);
 }
 
-void ADemoGameMode::Pause()
+void ADemoGameMode::PauseSequence()
 {
 	GetGameInstance<UMyGameInstance>()->Pause(CurrentProcessIndex);
 }
@@ -232,6 +232,7 @@ void ADemoGameMode::EndAction()
 			if (CurrentProcessIndex > 0)
 			{
 				InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
+				SynchronizeWidget();
 				CPP_PressPlay();
 			}
 			else
@@ -245,6 +246,7 @@ void ADemoGameMode::EndAction()
 			if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
 			{
 				InitProcess(CurrentProcessIndex + 1);
+				SynchronizeWidget();
 				CPP_PressPlay();
 			}
 			else
@@ -341,7 +343,7 @@ void ADemoGameMode::InitPartsActorArray()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::BeginPlay : There's No PartsActor"));
+		UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::InitPartsActorArray : There's No PartsActor"));
 	}
 }
 
@@ -358,10 +360,7 @@ void ADemoGameMode::SetSequence()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::SetSequence : Called"));
 
-	FMovieSceneSequencePlaybackSettings Settings;
-	Settings.PlayRate = PlayRate;
-	Settings.bPauseAtEnd = true;
-	GetGameInstance<UMyGameInstance>()->SetSequence(CurrentProcessIndex, bIsAssembleMode, PlayRate);
+	GetGameInstance<UMyGameInstance>()->SetSequence(CurrentProcessIndex, PlayRate);
 
 	/*if (LevelSequenceActor->IsValidLowLevelFast())
 	{
@@ -419,7 +418,7 @@ void ADemoGameMode::SetMaterialToTranslucent()
 				PartsActor->SetMaterialToDefault();
 			}
 		}
-		else if (i > CurrentProcessIndex)
+		else
 		{
 			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
 			{
@@ -441,6 +440,28 @@ void ADemoGameMode::SetMaterialToDefault()
 				PartsActor->SetActorHiddenInGame(true);
 			}
 		}
+		else if (i == CurrentProcessIndex)
+		{
+			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
+			{
+				if (bIsAssembleMode)
+				{
+					if (CurrentProcessIndex == ProcessDataArray.Num() - 1)
+					{
+						PartsActor->SetMaterialToDefault();
+					}
+					else
+					{
+						PartsActor->SetActorHiddenInGame(true);
+					}
+				}
+				else
+				{
+					PartsActor->SetMaterialToDefault();
+				}
+					
+			}
+		}
 		else
 		{
 			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
@@ -449,4 +470,5 @@ void ADemoGameMode::SetMaterialToDefault()
 			}
 		}
 	}
+	GetGameInstance<UMyGameInstance>()->SetPosition(CurrentProcessIndex, bIsAssembleMode);
 }

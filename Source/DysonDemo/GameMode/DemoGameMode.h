@@ -105,14 +105,16 @@ public:
 	void InitStateWidget() const;
 	UFUNCTION(BlueprintImplementableEvent)
 	void ReadyToPlay() const;
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void SynchronizeWidget() const;
 	
 protected:
 	virtual void BeginPlay() override;
 private:
 	void PlaySequence();
 	void SetIsPlaying();
-	void SetIsPause();
-	void Pause();
+	void SetIsPause(bool bNewIsPause);
+	void PauseSequence();
 	// Called when Sequence Play is over 
 	void EndAction();
 
