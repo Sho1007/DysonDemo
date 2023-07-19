@@ -22,7 +22,8 @@ public:
 
 	void InitLevelSequence(ADemoGameMode* NewGameMode);
 	void ResetSequence(int32 Index);
-	void SetSequence(int32 Index, bool bIsAssembleMode, float PlayRate);
+	void SetSequence(int32 Index, float PlayRate);
+	void SetPosition(int32 Index, bool bIsAssembleMode);
 	void PlaySequence(int32 Index, bool bIsAssembleMode);
 	void SetPlayRate(int32 Index, float NewPlayRate);
 	void Pause(int32 Index);
