@@ -31,14 +31,18 @@ bool ADemoGameMode::RequestHTTP(const FString URL)
 
 void ADemoGameMode::InitProcess(int32 NewProcessIndex)
 {
-	CurrentProcessIndex = bIsAssembleMode ? ProcessDataArray.Num() - NewProcessIndex - 1 : NewProcessIndex;
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::InitProcess : Called"));
 
-	SetMaterialToTranslucent();
+	GetGameInstance<UMyGameInstance>()->ResetSequence(CurrentProcessIndex);
+
+	CurrentProcessIndex = bIsAssembleMode ? ProcessDataArray.Num() - NewProcessIndex - 1 : NewProcessIndex;
 
 	ResetPlayState();
 	SetSequence();
 
 	InitStateWidget();
+
+	SetMaterialToTranslucent();
 }
 
 
@@ -61,6 +65,7 @@ void ADemoGameMode::ToggleProcessMode()
 {
 	bIsAssembleMode = !bIsAssembleMode;
 	OnProcessModeChanged.Broadcast(bIsAssembleMode);
+	InitProcess(0);
 }
 
 void ADemoGameMode::PressDetail()
@@ -77,8 +82,9 @@ void ADemoGameMode::PressDetail()
 	}
 }
 
-void ADemoGameMode::PressPlay()
+void ADemoGameMode::CPP_PressPlay()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::CPP_PressPlay : Called"));
 	SetMaterialToDefault();
 	if (bIsPlaying)
 	{
@@ -118,10 +124,7 @@ void ADemoGameMode::PressSpeed()
 	{
 		PlayRate = 1.0f;
 	}
-	if (LevelSequenceActor->IsValidLowLevelFast())
-	{
-		LevelSequenceActor->SequencePlayer->SetPlayRate(PlayRate);
-	}
+	GetGameInstance<UMyGameInstance>()->SetPlayRate(CurrentProcessIndex, PlayRate);
 
 	OnPlayRateChanged.Broadcast(PlayRate);
 }
@@ -146,6 +149,7 @@ void ADemoGameMode::CheckPause()
 
 void ADemoGameMode::PlaySequence()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::PlaySequence : Called"));
 	if (bIsPlaying == false)
 	{
 		SetIsPlaying();
@@ -153,10 +157,11 @@ void ADemoGameMode::PlaySequence()
 
 	if (bIsReadyToPlay)
 	{
-		bIsAssembleMode ? LevelSequenceActor->SequencePlayer->PlayReverse() : LevelSequenceActor->SequencePlayer->Play();
+		GetGameInstance<UMyGameInstance>()->PlaySequence(CurrentProcessIndex, bIsAssembleMode);
 	}
 	else
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::PlaySequence : Ready To Play"));
 		bIsReadyToPlay = true;
 		ReadyToPlay();
 	}
@@ -176,12 +181,14 @@ void ADemoGameMode::SetIsPause()
 
 void ADemoGameMode::Pause()
 {
-	LevelSequenceActor->SequencePlayer->Pause();
+	GetGameInstance<UMyGameInstance>()->Pause(CurrentProcessIndex);
 }
 
 void ADemoGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetGameInstance<UMyGameInstance>()->InitLevelSequence(this);
 
 	if (PartsActorClass)
 	{
@@ -213,25 +220,66 @@ void ADemoGameMode::BeginPlay()
 
 void ADemoGameMode::EndAction()
 {
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::EndAction : Called"));
 	if (bIsRepeat)
 	{
-		FMovieSceneSequencePlaybackParams Params;
-		if (bIsAssembleMode)
-		{
-			Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetEndTime().Time.FrameNumber;
-			LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
-			LevelSequenceActor->SequencePlayer->PlayReverse();
-		}
-		else
-		{
-			Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
-			LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
-			LevelSequenceActor->SequencePlayer->Play();
-		}
+		PlaySequence();
 	}
 	else
 	{
-		ResetPlayState();
+		if (bIsAssembleMode)
+		{
+			if (CurrentProcessIndex > 0)
+			{
+				InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
+				CPP_PressPlay();
+			}
+			else
+			{
+				// End Of Process
+				ResetPlayState();
+			}
+		}
+		else
+		{
+			if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
+			{
+				InitProcess(CurrentProcessIndex + 1);
+				CPP_PressPlay();
+			}
+			else
+			{
+				// End Of Process
+				ResetPlayState();
+			}
+		}
+		
+
+		/*if (bIsAssembleMode)
+		{
+			if (CurrentProcessIndex > 0)
+			{
+				
+				InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
+				PressPlay();
+			}
+			else
+			{
+				ResetPlayState();
+			}
+		}
+		else
+		{
+			if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
+			{
+				InitProcess(CurrentProcessIndex + 1);
+				PressPlay();
+			}
+			else
+			{
+				ResetPlayState();
+			}
+		}*/
 	}
 }
 
@@ -308,8 +356,19 @@ void ADemoGameMode::ResetPlayState()
 
 void ADemoGameMode::SetSequence()
 {
-	if (LevelSequenceActor->IsValidLowLevelFast())
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::SetSequence : Called"));
+
+	FMovieSceneSequencePlaybackSettings Settings;
+	Settings.PlayRate = PlayRate;
+	Settings.bPauseAtEnd = true;
+	GetGameInstance<UMyGameInstance>()->SetSequence(CurrentProcessIndex, bIsAssembleMode, PlayRate);
+
+	/*if (LevelSequenceActor->IsValidLowLevelFast())
 	{
+		FMovieSceneSequencePlaybackParams Params;
+		Params.UpdateMethod = EUpdatePositionMethod::Play;
+		Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
+		LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
 		LevelSequenceActor->Destroy();
 	}
 
@@ -319,19 +378,19 @@ void ADemoGameMode::SetSequence()
 		LevelSequenceActor->SequencePlayer->SetPlayRate(PlayRate);
 		LevelSequenceActor->SequencePlayer->OnFinished.AddDynamic(this, &ADemoGameMode::OnSequenceFinished);
 		FMovieSceneSequencePlaybackParams Params;
-		Params.Frame.FrameNumber = bIsAssembleMode ? LevelSequenceActor->SequencePlayer->GetEndTime().Time.FrameNumber : LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
+		Params.Frame.FrameNumber = LevelSequenceActor->SequencePlayer->GetStartTime().Time.FrameNumber;
 		LevelSequenceActor->SequencePlayer->SetPlaybackPosition(Params);
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::SetSequence : LevelSequence is not Valid"));
-	}
+	}*/
 }
 
 void ADemoGameMode::OnSequenceFinished()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::OnSequenceFinished : Called"));
-	if (bShowDetail)
+	if (bShowDetail && ProcessDataArray[CurrentProcessIndex].DetailImageArray.Num() > 0)
 	{
 		ShowDetailWidget();
 	}
@@ -344,10 +403,6 @@ void ADemoGameMode::OnSequenceFinished()
 void ADemoGameMode::SetMaterialToTranslucent()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5, FColor::Red, FString::Printf(TEXT("Translucent : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
-	for (APartsActor* PartsActor : ProcessDataArray[CurrentProcessIndex].PartsActorArray)
-	{
-		PartsActor->SetMaterialToDefault();
-	}
 	for (int i = 0; i < ProcessDataArray.Num(); ++i)
 	{
 		if (i < CurrentProcessIndex)
@@ -357,10 +412,15 @@ void ADemoGameMode::SetMaterialToTranslucent()
 				PartsActor->SetActorHiddenInGame(true);
 			}
 		}
+		else if (i == CurrentProcessIndex)
+		{
+			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
+			{
+				PartsActor->SetMaterialToDefault();
+			}
+		}
 		else if (i > CurrentProcessIndex)
 		{
-			// i > CurrentProcessIndex
-
 			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
 			{
 				PartsActor->SetMaterialToTranslucent();
@@ -372,7 +432,6 @@ void ADemoGameMode::SetMaterialToTranslucent()
 void ADemoGameMode::SetMaterialToDefault()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Default : %s"), *ProcessDataArray[CurrentProcessIndex].ProcessText.ToString()));
-
 	for (int i = 0; i < ProcessDataArray.Num(); ++i)
 	{
 		if (i < CurrentProcessIndex)
@@ -384,8 +443,6 @@ void ADemoGameMode::SetMaterialToDefault()
 		}
 		else
 		{
-			// i > CurrentProcessIndex
-
 			for (APartsActor* PartsActor : ProcessDataArray[i].PartsActorArray)
 			{
 				PartsActor->SetMaterialToDefault();

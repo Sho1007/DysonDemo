@@ -4,9 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+
+#include <MovieScene/Public/MovieSceneSequencePlaybackSettings.h>
+
 #include "MyGameInstance.generated.h"
 
 class ULevelSequence;
+class ALevelSequenceActor;
+class ADemoGameMode;
 UCLASS()
 class DYSONDEMO_API UMyGameInstance : public UGameInstance
 {
@@ -14,7 +19,22 @@ class DYSONDEMO_API UMyGameInstance : public UGameInstance
 	
 public:
 	ULevelSequence* GetLevelSequence(int32 SequenceIndex) const;
+
+	void InitLevelSequence(ADemoGameMode* NewGameMode);
+	void ResetSequence(int32 Index);
+	void SetSequence(int32 Index, bool bIsAssembleMode, float PlayRate);
+	void PlaySequence(int32 Index, bool bIsAssembleMode);
+	void SetPlayRate(int32 Index, float NewPlayRate);
+	void Pause(int32 Index);
+	UFUNCTION()
+	void OnSequenceFinished();
 private:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
 	TArray<ULevelSequence*> SequenceArray;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
+	TArray<ALevelSequenceActor*> SequenceActorArray;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Meta = (AllowPrivateAccess = true))
+	ADemoGameMode* GameMode;
 };

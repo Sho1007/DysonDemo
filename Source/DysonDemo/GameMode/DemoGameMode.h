@@ -60,6 +60,9 @@ class DYSONDEMO_API ADemoGameMode : public AGameModeBase
 	GENERATED_BODY()
 	
 public:
+	UFUNCTION()
+	void OnSequenceFinished();
+
 	UFUNCTION(BlueprintCallable)
 	void InitProcess(int32 NewProcessIndex);
 
@@ -83,7 +86,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void PressDetail();
 	UFUNCTION(BlueprintCallable)
-	void PressPlay();
+	void CPP_PressPlay();
 	UFUNCTION(BlueprintCallable)
 	void PressRepeat();
 	UFUNCTION(BlueprintCallable)
@@ -121,8 +124,7 @@ private:
 	void ResetPlayState();
 	void SetSequence();
 
-	UFUNCTION()
-	void OnSequenceFinished();
+	
 
 	UFUNCTION(CallInEditor)
 	void SetMaterialToTranslucent();
@@ -146,16 +148,14 @@ public:
 private:
 	UPROPERTY(BlueprintReadWrite , EditAnywhere, Meta = (AllowPrivateAccess = true))
 	float PlayRate = 1.0f;
-	bool bIsPlaying;
-	bool bIsReadyToPlay;
-	bool bIsRepeat;
+	bool bIsPlaying = false;
+	bool bIsReadyToPlay = false;
+	bool bIsRepeat = false;
 	bool bPlaySound = true;
-	bool bShowDetail;
-	bool bIsPaused;
+	bool bShowDetail = true;
+	bool bIsPaused = false;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	TArray<FCameraSetting> CameraSettingArray;
-
-	ALevelSequenceActor* LevelSequenceActor;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	bool bIsAssembleMode = false;
