@@ -65,6 +65,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void InitProcess(int32 NewProcessIndex);
+	UFUNCTION(BlueprintCallable)
+	void SelectProcess(int32 NewProcessIndex);
+
+	void MoveToNextProcess();
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void ShowInstruction(int32 Index);
@@ -100,11 +104,17 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowDetailWidget() const;
 	UFUNCTION(BlueprintImplementableEvent)
-	void HideDetailWidget() const;
+	void HideDetailWidget();
+	UFUNCTION(BlueprintImplementableEvent)
+	void BlinkDetailButton();
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void StopBlinkDetailButton();
+	UFUNCTION(BlueprintImplementableEvent)
+	void StopBlinkPlayButton() const;
 	UFUNCTION(BlueprintImplementableEvent)
 	void InitStateWidget() const;
 	UFUNCTION(BlueprintImplementableEvent)
-	void ReadyToPlay() const;
+	void ReadyToPlay();
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void SynchronizeWidget() const;
 	
@@ -148,13 +158,20 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Delegate")
 	FDele_Float OnPlayRateChanged;
 private:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
+	bool bIsCameraMoving = false;
+
 	UPROPERTY(BlueprintReadWrite , EditAnywhere, Meta = (AllowPrivateAccess = true))
 	float PlayRate = 1.0f;
+	bool bIsPlayed = false;
 	bool bIsPlaying = false;
 	bool bIsReadyToPlay = false;
 	bool bIsRepeat = false;
 	bool bPlaySound = true;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	bool bShowDetail = true;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Meta = (AllowPrivateAccess = true))
+	bool bIsDetailBlinked = true;
 	bool bIsPaused = false;
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Meta = (AllowPrivateAccess = true))
 	TArray<FCameraSetting> CameraSettingArray;

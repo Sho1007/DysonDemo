@@ -33,6 +33,8 @@ void ADemoGameMode::InitProcess(int32 NewProcessIndex)
 {
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::InitProcess : Called"));
 
+	bIsPlayed = false;
+
 	GetGameInstance<UMyGameInstance>()->ResetSequence(CurrentProcessIndex);
 
 	CurrentProcessIndex = bIsAssembleMode ? ProcessDataArray.Num() - NewProcessIndex - 1 : NewProcessIndex;
@@ -45,6 +47,52 @@ void ADemoGameMode::InitProcess(int32 NewProcessIndex)
 	SynchronizeWidget();
 
 	SetMaterialToTranslucent();
+}
+
+void ADemoGameMode::SelectProcess(int32 NewProcessIndex)
+{
+	HideDetailWidget();
+
+	InitProcess(NewProcessIndex);
+
+	if (bShowDetail && ProcessDataArray[CurrentProcessIndex].DetailImageArray.Num() > 0)
+	{
+		BlinkDetailButton();
+	}
+}
+	
+
+void ADemoGameMode::MoveToNextProcess()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::MoveToNextProcess : Called"));
+	if (bIsAssembleMode)
+	{
+		if (CurrentProcessIndex > 0)
+		{
+			InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
+			SynchronizeWidget();
+			CPP_PressPlay();
+		}
+		else
+		{
+			// End Of Process
+			ResetPlayState();
+		}
+	}
+	else
+	{
+		if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
+		{
+			InitProcess(CurrentProcessIndex + 1);
+			SynchronizeWidget();
+			CPP_PressPlay();
+		}
+		else
+		{
+			// End Of Process
+			ResetPlayState();
+		}
+	}
 }
 
 
@@ -67,7 +115,7 @@ void ADemoGameMode::ToggleProcessMode()
 {
 	bIsAssembleMode = !bIsAssembleMode;
 	OnProcessModeChanged.Broadcast(bIsAssembleMode);
-	InitProcess(0);
+	SelectProcess(0);
 }
 
 void ADemoGameMode::PressDetail()
@@ -75,19 +123,40 @@ void ADemoGameMode::PressDetail()
 	if (GetIsDetailShown())
 	{
 		HideDetailWidget();
-		EndAction();
+		bIsPlayed ? EndAction() : CPP_PressPlay();
 	}
 	else
 	{
-		bShowDetail = !bShowDetail;
-		OnDetailChanged.Broadcast(bShowDetail);
+		if (bIsDetailBlinked)
+		{
+			UE_LOG(LogTemp, Error, TEXT("ADemoGameMode::PressDetail : Detail Blinked And Press Button"));
+			ShowDetailWidget();
+			return;
+		}
+		else
+		{
+			bShowDetail = !bShowDetail;
+			OnDetailChanged.Broadcast(bShowDetail);
+		}
 	}
 }
 
 void ADemoGameMode::CPP_PressPlay()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::CPP_PressPlay : Called"));
-	SetMaterialToDefault();
+
+	StopBlinkDetailButton();
+
+	if (GetIsDetailShown())
+	{
+		HideDetailWidget();
+		if (bIsPlayed)
+		{
+			EndAction();
+			return;
+		}
+	}
+
 	if (bIsPlaying)
 	{
 		if (bIsPaused)
@@ -103,6 +172,7 @@ void ADemoGameMode::CPP_PressPlay()
 	}
 	else
 	{
+		SetMaterialToDefault();
 		SetIsPlaying();
 		PlaySequence();
 	}
@@ -145,6 +215,7 @@ void ADemoGameMode::PressSound()
 
 void ADemoGameMode::CheckPause()
 {
+	bIsCameraMoving = false;
 	if (!bIsPaused)
 	{
 		PlaySequence();
@@ -227,61 +298,7 @@ void ADemoGameMode::EndAction()
 	}
 	else
 	{
-		if (bIsAssembleMode)
-		{
-			if (CurrentProcessIndex > 0)
-			{
-				InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
-				SynchronizeWidget();
-				CPP_PressPlay();
-			}
-			else
-			{
-				// End Of Process
-				ResetPlayState();
-			}
-		}
-		else
-		{
-			if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
-			{
-				InitProcess(CurrentProcessIndex + 1);
-				SynchronizeWidget();
-				CPP_PressPlay();
-			}
-			else
-			{
-				// End Of Process
-				ResetPlayState();
-			}
-		}
-		
-
-		/*if (bIsAssembleMode)
-		{
-			if (CurrentProcessIndex > 0)
-			{
-				
-				InitProcess(ProcessDataArray.Num() - CurrentProcessIndex);
-				PressPlay();
-			}
-			else
-			{
-				ResetPlayState();
-			}
-		}
-		else
-		{
-			if (CurrentProcessIndex < ProcessDataArray.Num() - 1)
-			{
-				InitProcess(CurrentProcessIndex + 1);
-				PressPlay();
-			}
-			else
-			{
-				ResetPlayState();
-			}
-		}*/
+		MoveToNextProcess();
 	}
 }
 
@@ -388,6 +405,7 @@ void ADemoGameMode::SetSequence()
 
 void ADemoGameMode::OnSequenceFinished()
 {
+	bIsPlayed = true;
 	UE_LOG(LogTemp, Warning, TEXT("ADemoGameMode::OnSequenceFinished : Called"));
 	if (bShowDetail && ProcessDataArray[CurrentProcessIndex].DetailImageArray.Num() > 0)
 	{
